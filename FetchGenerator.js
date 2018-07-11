@@ -3,32 +3,34 @@
 
 class FetchGenerator {
   generateRequest({ url, method, headers, name, body, description }) {
-    const fetchOptions = [];
+    const snakeCase = str =>
+      `${str.replace(/(\w)(?:\s+)(\w)/gm, "$1_$2").trim()}_fetch`;
+    const varName = snakeCase(name);
+
+    const comment = description ? `/* ${description} */\n` : "";
+
+    const init = [];
     if (method !== "GET") {
-      fetchOptions.push(`method: "${method}"`);
+      init.push(`method: "${method}"`);
     }
-    if (headers) {
-      console.log(headers["Content-Type"]);
+    if (Object.keys(headers).length > 0) {
       const headerString = Object.keys(headers).reduce(
         (prev, key, i) =>
           `${prev}${i === 0 ? "" : ", "}${key}: "${headers[key]}"`,
         ""
       );
-      fetchOptions.push(`headers: { ${headerString} }`);
+      init.push(`headers: { ${headerString} }`);
     }
     if (body) {
-      fetchOptions.push(`body: ${body}`);
+      init.push(`body: "${body.replace(/[""]/g, '\\"')}"`);
+    }
+    if (init.length === 0) {
+      return `${comment}const ${varName} = fetch("${encodeURI(url)}");`;
     }
 
-    if (fetchOptions.length === 0) {
-      return `const ${name}Fetch = fetch("${url}");`;
-    }
-
-    const descriptionString = description ? `/* ${description} */\n` : "";
-
-    return `${descriptionString}const ${name}Fetch = fetch(
-  "${url}",
-  {${fetchOptions.join(", ")}}
+    return `${comment}const ${varName} = fetch(
+  "${encodeURI(url)}",
+  {${init.join(", ")}}
 );`;
   }
 
@@ -38,8 +40,9 @@ class FetchGenerator {
 }
 
 FetchGenerator.identifier = "com.pjwdev.FetchGenerator";
-FetchGenerator.title = "Fetch Generator";
+FetchGenerator.title = "Fetch";
 
 FetchGenerator.fileExtension = "js";
 FetchGenerator.languageHighlighter = "javascript";
+
 registerCodeGenerator(FetchGenerator);
